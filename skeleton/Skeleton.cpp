@@ -47,10 +47,12 @@ char SkeletonPass::ID = 0;
 
 // Automatically enable the pass.
 // http://adriansampson.net/blog/clangpass.html
-static void registerSkeletonPass(const PassManagerBuilder &,
-                         legacy::PassManagerBase &PM) {
-  PM.add(new SkeletonPass());
-}
-static RegisterStandardPasses
-  RegisterMyPass(PassManagerBuilder::EP_EarlyAsPossible,
-                 registerSkeletonPass);
+// static void registerSkeletonPass(const PassManagerBuilder &,
+//                          legacy::PassManagerBase &PM) {
+//   PM.add(new SkeletonPass());
+// }
+// static RegisterStandardPasses
+//   RegisterMyPass(PassManagerBuilder::EP_EarlyAsPossible,
+//                  registerSkeletonPass);
+
+static RegisterPass<SkeletonPass> X("skeleton", "a useless pass");

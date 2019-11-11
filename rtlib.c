@@ -15,6 +15,6 @@ void logop(int i) {
 
 void inc(int key){
     map[key] = map[key] + 1;
-    printf("%d, %d", key, map[key]);
+    printf("%d, %d \n", key, map[key]);
 }
 

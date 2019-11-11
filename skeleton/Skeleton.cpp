@@ -21,24 +21,26 @@ namespace {
       Type *retType = Type::getVoidTy(Ctx);
       FunctionType *logFuncType = FunctionType::get(retType, paramTypes, false);
       FunctionCallee logFunc = F.getParent()->getOrInsertFunction("logop", logFuncType);
+      
+      int freshNum = 0;
 
       for (auto &B : F) {
-        for (auto &I : B) {
-          if (auto *op = dyn_cast<BinaryOperator>(&I)) {
             // Insert *after* `op`.
-            IRBuilder<> builder(op);
+            IRBuilder<> builder(&B);
             builder.SetInsertPoint(&B, ++builder.GetInsertPoint());
+            
+            auto intType = IntegerType::get	(Ctx, 32);
+            auto constantInt = ConstantInt::get	(intType, freshNum);
+            freshNum++;
+            printf("FRESHNUM %i\n", freshNum);
 
             // Insert a call to our function.
-            Value* args[] = {op};
+            Value* args[] = {constantInt};
             builder.CreateCall(logFunc, args);
 
-            return true;
-          }
-        }
       }
 
-      return false;
+      return true;
     }
   };
 }

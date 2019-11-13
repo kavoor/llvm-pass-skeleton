@@ -8,6 +8,7 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/IR/Module.h"
 #include "llvm-c/Core.h"
+#include <string>
 
 using namespace llvm;
 
@@ -27,22 +28,21 @@ namespace {
     std::vector<Edge> MST;
   };
 
-  bool static hasCycleHelper(std::vector<Edge> mst, Edge current, Edge target) {
-    if(&current == &target) return true;
+  bool static edgeEquals(Edge a, Edge b){
+    return a.SrcBB == b.SrcBB && a.DestBB == b.DestBB;
+  }
+
+  bool static hasCycleHelper(std::vector<Edge> mst, Edge target) {
     for(Edge element : mst){
-      if(element.SrcBB == current.DestBB)
-        hasCycleHelper(mst, element, target);
+      if(element.SrcBB == target.DestBB || element.DestBB == target.DestBB) {
+        return true;
+      }
     }
     return false;
   }
 
   bool static hasCycle(std::vector<Edge> mst, Edge target){
-    for(Edge el : mst){
-      if(&el.SrcBB == &target.DestBB &&
-        hasCycleHelper(mst, el, target))
-        return true;
-    }
-    return false;
+    return hasCycleHelper(mst, target);
   }
 
   void static addEdges(std::vector<Edge>* edges, BasicBlock* B ){
@@ -52,15 +52,20 @@ namespace {
     }
   }
 
-  std::vector<Edge> static createMST(BasicBlock* B, std::vector<Edge> allEdges){
-    std::vector<Edge> mst;
+  void static createMST(BasicBlock* B, std::vector<Edge> allEdges, std::vector<Edge>* mst){
     for (auto it = succ_begin(B), et = succ_end(B); it != et; ++it) {
       BasicBlock* successor = *it;
-      if (!hasCycle(mst, Edge(B, successor))) {
-         mst.push_back(Edge(B, successor));
+      if (!hasCycle(*mst, Edge(B, successor))) {
+        for(Edge i : *mst){
+          if (edgeEquals(Edge(B, successor), i)){
+            return;
+          }
+        }
+        mst->push_back(Edge(B, successor));
+        createMST(successor, allEdges, mst);
       }
     }
-    return mst;
+    return;
   }
   bool static inMST(std::vector<Edge> mst, BasicBlock * bb){
     for (Edge e : mst){
@@ -94,7 +99,9 @@ namespace {
       // BasicBlock * firstBB = LLVMGetFirstBasicBlock(&F);
       BasicBlock* firstBB = &(F.getEntryBlock());
 
-      auto mst = createMST(firstBB, allEdges);
+      std::vector<Edge> mst;
+      createMST(firstBB, allEdges, &mst);
+      errs() << mst.size();
       
       for (auto &B : F) {
             if (inMST(mst, &B)) continue;
@@ -113,7 +120,7 @@ namespace {
             builder.CreateCall(logFunc, args);
       }
       for (Edge e : mst){
-        errs() << LLVMGetBasicBlockName((e.SrcBB) << " -> " << LLVMGetBasicBlockName(e.DestBB) << "\n" << "@@@@@@@@@@@@@@@@@@\n";
+        errs() << *e.SrcBB << " -> " << *e.DestBB << "\n" << "@@@@@@@@@@@@@@@@@@\n";
       }
       return true;
     }

@@ -2,8 +2,9 @@
 #include <string.h> 
 #include <limits.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 
-int map[INT_MAX];
+std::atomic<int> map[INT_MAX];
 bool init = 0;
 
 

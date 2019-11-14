@@ -16,11 +16,11 @@ namespace {
 
   /* Representation of an Edge */
   struct Edge {
-    const BasicBlock *SrcBB;
-    const BasicBlock *DestBB;
+    BasicBlock *SrcBB;
+    BasicBlock *DestBB;
     bool InMST = false;
 
-    Edge(const BasicBlock *Src, const BasicBlock *Dest)
+    Edge( BasicBlock *Src,  BasicBlock *Dest)
       : SrcBB(Src), DestBB(Dest) {}
   };
   
@@ -76,6 +76,25 @@ namespace {
     return false;
   }
 
+  int freshNum = 0;
+  std::vector<BasicBlock*> instrumentedSrcs;
+  std::vector<BasicBlock*> instrumentedDests;
+
+  void instrument(BasicBlock * B, LLVMContext& Ctx, FunctionCallee someFunc){
+    // Insert *after* `op`.
+    // errs() << B << "\n";
+    IRBuilder<> builder(B);
+    builder.SetInsertPoint(B, ++builder.GetInsertPoint());
+    
+    auto intType = IntegerType::get	(Ctx, 32);
+    auto constantInt = ConstantInt::get	(intType, freshNum++);
+    // printf("FRESHNUM %i\n", freshNum);
+
+    // Insert a call to our function.
+    Value* args[] = {constantInt};
+    builder.CreateCall(someFunc, args);
+  }
+
   struct SkeletonPass : public FunctionPass {
     static char ID;
     SkeletonPass() : FunctionPass(ID) {}
@@ -85,10 +104,10 @@ namespace {
       LLVMContext &Ctx = F.getContext();
       std::vector<Type*> paramTypes = {Type::getInt32Ty(Ctx)};
       Type *retType = Type::getVoidTy(Ctx);
-      FunctionType *logFuncType = FunctionType::get(retType, paramTypes, false);
-      FunctionCallee logFunc = F.getParent()->getOrInsertFunction("logop", logFuncType);
-      
-      int freshNum = 0;
+      FunctionType *logSrcFuncType = FunctionType::get(retType, paramTypes, false);
+      FunctionCallee logSrcFunc = F.getParent()->getOrInsertFunction("logsrc", logSrcFuncType);
+      FunctionType *logDestFuncType = FunctionType::get(retType, paramTypes, false);
+      FunctionCallee logDestFunc = F.getParent()->getOrInsertFunction("logdest", logDestFuncType);
     
       std::vector<Edge> allEdges;
 
@@ -101,27 +120,61 @@ namespace {
 
       std::vector<Edge> mst;
       createMST(firstBB, allEdges, &mst);
-      errs() << mst.size();
-      
-      for (auto &B : F) {
-            if (inMST(mst, &B)) continue;
-            // Insert *after* `op`.
-            errs() << B << "\n";
-            IRBuilder<> builder(&B);
-            builder.SetInsertPoint(&B, ++builder.GetInsertPoint());
-            
-            auto intType = IntegerType::get	(Ctx, 32);
-            auto constantInt = ConstantInt::get	(intType, freshNum);
-            freshNum++;
-            printf("FRESHNUM %i\n", freshNum);
+      errs() << "SIZE " << mst.size()<<"\n\n\n";
 
-            // Insert a call to our function.
-            Value* args[] = {constantInt};
-            builder.CreateCall(logFunc, args);
+
+      
+      for(Edge edge : allEdges){
+        bool doContinue = false;
+        for(Edge mstEdge : mst) if (edgeEquals(edge, mstEdge)) doContinue = true;
+        if (doContinue) continue;
+
+        errs() << "INSTRUMENTING: " << *edge.SrcBB << "-->" << *edge.DestBB << '\n';
+        bool instrumentSource = true;
+        bool instrumentDest = true;
+        for(BasicBlock * instrumentedB : instrumentedSrcs){
+          if(instrumentedB == edge.SrcBB){
+            instrumentSource = false;
+            break;
+          }
+        }
+        for(BasicBlock * instrumentedB : instrumentedDests){
+          if(instrumentedB == edge.DestBB){
+            instrumentDest = false;
+            break;
+          }
+        }
+        if(instrumentSource) {
+          printf("Instrumenting %i as a source\n", freshNum);
+          instrument(edge.SrcBB, Ctx, logSrcFunc);
+          instrumentedSrcs.push_back(edge.SrcBB);
+        }
+        if(instrumentDest){
+          printf("Instrumenting %i as a dest\n", freshNum);
+          instrument(edge.DestBB, Ctx, logDestFunc);
+          instrumentedDests.push_back(edge.DestBB);
+        } 
       }
-      for (Edge e : mst){
-        errs() << *e.SrcBB << " -> " << *e.DestBB << "\n" << "@@@@@@@@@@@@@@@@@@\n";
-      }
+      
+      // for (auto &B : F) {
+      //       if (inMST(mst, &B)) continue;
+      //       // Insert *after* `op`.
+      //       errs() << B << "\n";
+      //       IRBuilder<> builder(&B);
+      //       builder.SetInsertPoint(&B, ++builder.GetInsertPoint());
+            
+      //       auto intType = IntegerType::get	(Ctx, 32);
+      //       auto constantInt = ConstantInt::get	(intType, freshNum);
+      //       freshNum++;
+      //       printf("FRESHNUM %i\n", freshNum);
+
+      //       // Insert a call to our function.
+      //       Value* args[] = {constantInt};
+      //       builder.CreateCall(logFunc, args);
+      // }
+      // for (Edge e : mst){
+      //   errs() << *e.SrcBB << " -> " << *e.DestBB << "\n" << "@@@@@@@@@@@@@@@@@@\n";
+      // }
       return true;
     }
   };

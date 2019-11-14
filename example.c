@@ -7,7 +7,7 @@ int main(int argc, const char** argv) {
         printf("Iteration %i\n", i);
     }
 
-    if(1){
+    if(num%2 == 0){
         printf("branch1\n");
     }
     else{

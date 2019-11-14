@@ -4,20 +4,25 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 
-std::atomic<int> map[INT_MAX];
+int srcmap[INT_MAX];
+int destmap[INT_MAX];
 bool init = 0;
 
-
-void inc(int key){
-    map[key] = map[key] + 1;
-    printf("%d, %d \n", key, map[key]);
+void logsrc(int i) {
+    if( !init ){
+        memset(srcmap, 0, INT_MAX);
+        init = 1;
+    }
+    srcmap[i]++;
+    printf(">>SOURCE %d, %d \n", i, srcmap[i]);
 }
 
 
-void logop(int i) {
+void logdest(int i) {
     if( !init ){
-        memset(map, 0, INT_MAX);
+        memset(destmap, 0, INT_MAX);
         init = 1;
     }
-    inc(i);
+    destmap[i]++;
+    printf(">>DEST %d, %d \n", i, destmap[i]);
 }

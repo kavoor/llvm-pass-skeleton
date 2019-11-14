@@ -33,3 +33,15 @@ void logdest(int i) {
     // printf(">>DEST %d, %d \n", i, destmap[i]);
     previousSource = false;
 }
+
+// print all the results for each function
+void print_results() {
+    printf("  Edge        Count\n");
+    for(int i=0; i<__INT16_MAX__; i++){
+       for(int j=0; j<__INT16_MAX__; j++){
+           if (WTF[i][j] != 0){
+               printf("[%d -> %d]        %d\n",i,j,WTF[i][j]);
+           }
+        } 
+    }
+}

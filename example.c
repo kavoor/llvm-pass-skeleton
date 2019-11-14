@@ -1,4 +1,10 @@
 #include <stdio.h>
+
+void testFunc(int n){
+    if(n%2==1) printf("HELLO!");
+}
+
+
 int main(int argc, const char** argv) {
     int num;
     scanf("%i", &num);
@@ -11,9 +17,10 @@ int main(int argc, const char** argv) {
         printf("branch1\n");
     }
     else{
-        printf("branch2\n");
+        testFunc(num);
     }
 
     printf("%i\n", num + 2);
     return 0;
 }
+

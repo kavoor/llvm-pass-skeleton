@@ -1,3 +1,7 @@
 build
 
 test-suite/.DS_Store
+
+.vscode/settings.json
+
+.DS_Store

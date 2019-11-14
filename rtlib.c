@@ -28,7 +28,7 @@ void logdest(int i) {
     // destmap[i]++;
     // srcmap[previousSourceNum]++;
     WTF[previousSourceNum][i]++;
-    printf(">>SOURCE %d, DEST %d, COUNT %d \n", previousSourceNum, i, WTF[previousSourceNum][i]);
+    // printf(">>SOURCE %d, DEST %d, COUNT %d \n", previousSourceNum, i, WTF[previousSourceNum][i]);
     // printf(">>SOURCE %d, %d \n", previousSourceNum, srcmap[previousSourceNum]);
     // printf(">>DEST %d, %d \n", i, destmap[i]);
     previousSource = false;

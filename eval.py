@@ -1,72 +1,436 @@
 import os, subprocess, time, argparse, re
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+from tqdm import trange
 
-filenames = ['Bubblesort', 'FloatMM', 'IntMM', 'Oscar', 'Perm', 'Puzzle', 'Queens', 'Quicksort', 'RealMM', 'Towers', 'Treesort']
-NUM_ITERATIONS = 1
+# filenames = ['Bubblesort', 'FloatMM', 'IntMM', 'Oscar', 'Perm', 'Puzzle', 'Queens', 'Quicksort', 'RealMM', 'Towers', 'Treesort']
+filenames = [
+    "fasta" ,
 
+    "fannkuch" ,
+
+    "n-body" ,
+
+    "nsieve-bits" ,
+
+    "partialsums" ,
+
+    "puzzle" ,
+
+    "recursive" ,
+
+    "spectral-norm" ,
+
+    "almabench" ,
+
+    "huffbench" ,
+
+    "lpbench" ,
+
+    "dry" ,
+
+    "fldry" ,
+
+    "linpack-pc" ,
+
+    "chomp" ,
+
+
+    "misr" ,
+
+    "queens" ,
+
+    "ReedSolomon" ,
+
+    "dt" ,
+
+    "evalloop" ,
+
+    "fbench" ,
+
+    "ffbench" ,
+
+    "flops-1" ,
+
+    "flops-2" ,
+
+    "flops-3" ,
+
+    "flops-4" ,
+
+    "flops-5" ,
+
+    "flops-6" ,
+
+    "flops-7" ,
+
+    "flops-8" ,
+
+    "flops" ,
+
+    "fp-convert" ,
+
+    "himenobmtxpa" ,
+
+    "lowercase" ,
+
+    "mandel-2" ,
+
+    "mandel" ,
+
+    "matmul_f64_4x4" ,
+
+    "oourafft" ,
+
+    "perlin" ,
+
+    "pi" ,
+
+    "revertBits" ,
+
+    "richards_benchmark" ,
+
+    "salsa20" ,
+
+    "whetstone" ,
+
+    "covariance" ,
+
+    "2mm" ,
+
+    "cholesky" ,
+
+    "gemver" ,
+
+    "gesummv" ,
+
+    "syrk" ,
+
+    "gramschmidt" ,
+
+    "lu" ,
+
+    "ludcmp" ,
+
+    "floyd-warshall" ,
+
+    "polybench" ,
+
+    "ackermann" ,
+
+    "ary3" ,
+
+    "fib2" ,
+
+    "hash" ,
+
+    "heapsort" ,
+
+    "hello" ,
+
+    "lists" ,
+
+    "matrix" ,
+
+    "methcall" ,
+
+    "nestedloop" ,
+
+    "objinst" ,
+
+    "random" ,
+
+    "sieve" ,
+
+    "strcat" ,
+
+    "Bubblesort" ,
+
+    "FloatMM" ,
+
+    "IntMM" ,
+
+    "Oscar" ,
+
+    "Perm" ,
+
+    "Puzzle" ,
+
+    "Queens" ,
+
+    "Quicksort" ,
+
+    "RealMM" ,
+
+    "Towers" ,
+
+    "Treesort" ,
+
+    "2mm" ,
+
+    "Bubblesort" ,
+
+    "FloatMM" ,
+
+    "IntMM" ,
+
+    "Oscar" ,
+
+    "Perm" ,
+
+    "Quicksort" ,
+
+    "RealMM" ,
+
+    "ReedSolomon" ,
+
+    "Towers" ,
+
+    "Treesort" ,
+
+    "ackermann" ,
+
+    "almabench" ,
+
+    "ary3" ,
+
+    "cholesky" ,
+
+    "chomp" ,
+
+    "covariance" ,
+
+    "dry" ,
+
+    "dt" ,
+
+    "evalloop" ,
+
+
+    "fannkuch" ,
+
+    "fasta" ,
+
+    "fbench" ,
+
+    "ffbench" ,
+
+    "fib2" ,
+
+    "fldry" ,
+
+    "flops-1" ,
+
+    "flops-2" ,
+
+    "flops-3" ,
+
+    "flops-4" ,
+
+    "flops-5" ,
+
+    "flops-6" ,
+
+    "flops-7" ,
+
+    "flops-8" ,
+
+    "flops" ,
+
+    "floyd-warshall" ,
+
+    "fp-convert" ,
+
+    "gemver" ,
+
+    "gesummv" ,
+
+    "gramschmidt" ,
+
+    "hash" ,
+
+    "heapsort" ,
+
+    "hello" ,
+
+    "himenobmtxpa" ,
+
+    "huffbench" ,
+
+    "linpack-pc" ,
+
+    "lists" ,
+
+    "lowercase" ,
+
+    "lpbench" ,
+
+    "lu" ,
+
+    "ludcmp" ,
+
+    "mandel-2" ,
+
+    "mandel" ,
+
+    "matmul_f64_4x4" ,
+
+    "matrix" ,
+
+    "methcall" ,
+
+    "misr" ,
+
+    "n-body" ,
+
+    "nestedloop" ,
+
+    "nsieve-bits" ,
+
+    "objinst" ,
+
+    "oourafft" ,
+
+    "partialsums" ,
+
+    "perlin" ,
+
+    "pi" ,
+
+    "polybench" ,
+
+    "puzzle" ,
+
+    "queens" ,
+
+    "random" ,
+
+    "recursive" ,
+
+    "revertBits" ,
+
+    "richards_benchmark" ,
+
+    "salsa20" ,
+
+    "sieve" ,
+
+    "spectral-norm" ,
+
+    "strcat" ,
+
+    "syrk" ,
+
+    "whetstone" ,
+
+]
+filenames = list(set(filenames))
+NUM_ITERATIONS = 10
+
+print("COMPILING TO LLVM")
+for filename in tqdm(filenames):
+    os.system('/usr/local/opt/llvm@9/bin/clang -S -emit-llvm -Xclang -disable-O0-optnone --include-directory=test-suite/target/ test-suite/target/' + filename + '.c ')
+    worked = os.path.exists('./'+filename+'.ll')
+    if(not worked):
+        filenames.remove(filename)
+
+print("RUNNING -O3")
+results0 = {}
+for filename in tqdm(filenames):
+    sum = []
+    for _ in range(NUM_ITERATIONS):
+        os.system('opt -O3 ' + filename + '.ll -o ' + filename + '0.ll &> /dev/null')
+        os.system('rm link.ll ; rm a.out &> /dev/null')
+        os.system('llvm-link rtlib.ll ' + filename + '0.ll ' + '-o link.ll')
+        worked = os.path.exists('./'+filename+'.ll')
+        if(not worked):
+            if filename in filenames:
+                filenames.remove(filename)
+            continue
+        os.system('llc link.ll; clang link.s')
+        worked = os.path.exists('a.out')
+        if(not worked):
+            if filename in filenames:
+                filenames.remove(filename)
+            continue
+        start = time.time()
+        os.system('./a.out > /dev/null')
+        end = time.time()
+        sum.append(end-start)
+    results0[filename] = sum
+
+print("RUNNING -O3 SKELETON")
 results1 = {}
-for filename in filenames:
-    sum = 0
+for filename in tqdm(filenames):
+    sum = []
     for _ in range(NUM_ITERATIONS):
-        # filename = 'test-suite/Stanford/' + filename
-        os.system('/usr/local/opt/llvm@9/bin/clang -S -emit-llvm -Xclang -disable-O0-optnone test-suite/Stanford/' + filename + '.c ')
-        os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S ' + filename + '.ll -o ' + filename + '1.ll &> /dev/null')
+        os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S ' + filename + '0.ll -o ' + filename + '1.ll &> /dev/null')
+        os.system('rm link.ll; rm a.out &> /dev/null')
         os.system('llvm-link rtlib.ll ' + filename + '1.ll ' + '-o link.ll')
+        worked = os.path.exists('./'+filename+'.ll')
+        if(not worked):
+            if filename in filenames:
+                filenames.remove(filename)
+            continue
         os.system('llc link.ll; clang link.s')
+        worked = os.path.exists('a.out')
+        if(not worked):
+            if filename in filenames:
+                filenames.remove(filename)
+            continue
         start = time.time()
         os.system('./a.out > /dev/null')
         end = time.time()
-        print(end-start)
-        sum += end-start
-    print("AVERAGE FOR ",filename, ' : ', sum/NUM_ITERATIONS)
-    results1[filename] = sum/NUM_ITERATIONS
+        sum.append(end-start)
+    results1[filename] = sum
 
+print("RUNNING -O3 SKELETON -O3")
 results2 = {}
-for filename in filenames:
-    sum = 0
+for filename in tqdm(filenames):
+    sum = []
     for _ in range(NUM_ITERATIONS):
-        # filename = 'test-suite/Stanford/' + filename
-        os.system('/usr/local/opt/llvm@9/bin/clang -S -emit-llvm -Xclang -disable-O0-optnone test-suite/Stanford/' + filename + '.c ')
-        os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S  ' + filename + '.ll -o ' + filename + '1.ll &> /dev/null')
+        # os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S  ' + filename + '.ll -o ' + filename + '1.ll &> /dev/null')
         os.system('opt -O3 ' + filename + '1.ll -o ' + filename + '2.ll > /dev/null')
+        os.system('rm link.ll; rm a.out &> /dev/null')
         os.system('llvm-link rtlib.ll ' + filename + '2.ll ' + '-o link.ll')
+        if(not worked):
+            if filename in filenames:
+                filenames.remove(filename) 
+            continue
         os.system('llc link.ll; clang link.s')
+        worked = os.path.exists('a.out')
+        if(not worked):
+            if filename in filenames:
+                filenames.remove(filename)
+            continue
         start = time.time()
         os.system('./a.out > /dev/null')
         end = time.time()
-        print(end-start)
-        sum += end-start
-    print("AVERAGE FOR ",filename, ' : ', sum/NUM_ITERATIONS)
-    results2[filename] = sum/NUM_ITERATIONS
+        sum.append(end-start)
+    results2[filename] = sum
 
-# num_bars = len(filenames)
-# mean = [5 for f in filenames]
-# std = [1 for f in filenames]
+print(results0)
+print(results1)
+print(results2)
 
-# x_pos = np.arange(num_bars)
-# CTEs = mean
-# error = std
+for filename in filenames:
+    r0 = np.mean(results0[filename])
+    results0[filename] = results0[filename] / r0 
+    results1[filename] = results1[filename] / r0 
+    results2[filename] = results2[filename] / r0 
 
-# # Build the plot
-# fig, ax = plt.subplots()
-# ax.bar(x_pos, CTEs, yerr=error, align='center', alpha=0.5, ecolor='black', capsize=10)
-# ax.set_ylabel('Execution Time1')
-# ax.set_xticks(x_pos)
-# ax.set_xticklabels(filenames)
-# ax.set_title('Execution Time2')
-# ax.yaxis.grid(True)
+# print(results0)
+# print(results1)
+# print(results2)
 
-# # Save the figure and show
-# plt.tight_layout()
-# plt.savefig('bar_plot_with_error_bars.png')
-# plt.show()
 
 import plotly.graph_objects as go
 
 fig = go.Figure(data=[
-    go.Bar(name='Profiled', x=filenames, y=[results1[filename] for filename in filenames]),
-    go.Bar(name='Profiled and -O3', x=filenames, y=[results2[filename] for filename in filenames])
+    go.Bar(name='-O3', x=filenames, y=[np.mean(results0[filename]) for filename in filenames], error_y = dict(type = 'data', array = [np.std(results0[filename]) for filename in filenames], visible = True )),
+    go.Bar(name='Profiled', x=filenames, y=[np.mean(results1[filename]) for filename in filenames], error_y = dict(type = 'data', array = [np.std(results1[filename]) for filename in filenames], visible = True )),
+    go.Bar(name='Profiled and -O3', x=filenames, y=[np.mean(results2[filename]) for filename in filenames], error_y = dict(type = 'data', array = [np.std(results2[filename]) for filename in filenames], visible = True ))
 ])
 # Change the bar mode
 fig.update_layout(barmode='group')

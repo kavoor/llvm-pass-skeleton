@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 filenames = ['Bubblesort', 'FloatMM', 'IntMM', 'Oscar', 'Perm', 'Puzzle', 'Queens', 'Quicksort', 'RealMM', 'Towers', 'Treesort']
 NUM_ITERATIONS = 1
 
-results = {}
+results1 = {}
 for filename in filenames:
     sum = 0
     for _ in range(NUM_ITERATIONS):
@@ -20,7 +20,25 @@ for filename in filenames:
         print(end-start)
         sum += end-start
     print("AVERAGE FOR ",filename, ' : ', sum/NUM_ITERATIONS)
-    results[filename] = sum/NUM_ITERATIONS
+    results1[filename] = sum/NUM_ITERATIONS
+
+results2 = {}
+for filename in filenames:
+    sum = 0
+    for _ in range(NUM_ITERATIONS):
+        # filename = 'test-suite/Stanford/' + filename
+        os.system('/usr/local/opt/llvm@9/bin/clang -S -emit-llvm -Xclang -disable-O0-optnone test-suite/Stanford/' + filename + '.c ')
+        os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S ' + filename + '.ll -o ' + filename + '1.ll > /dev/null')
+        os.system('opt -O3 ' + filename + '1.ll -o ' + filename + '2.ll > /dev/null')
+        os.system('llvm-link rtlib.ll ' + filename + '2.ll ' + '-o link.ll')
+        os.system('llc link.ll; clang link.s')
+        start = time.time()
+        os.system('./a.out > /dev/null')
+        end = time.time()
+        print(end-start)
+        sum += end-start
+    print("AVERAGE FOR ",filename, ' : ', sum/NUM_ITERATIONS)
+    results2[filename] = sum/NUM_ITERATIONS
 
 # num_bars = len(filenames)
 # mean = [5 for f in filenames]
@@ -47,8 +65,8 @@ for filename in filenames:
 import plotly.graph_objects as go
 
 fig = go.Figure(data=[
-    go.Bar(name='instrumented', x=filenames, y=[results[filename] for filename in filenames]),
-    go.Bar(name='nah', x=filenames, y=[results[filename] for filename in filenames])
+    go.Bar(name='instrumented', x=filenames, y=[results1[filename] for filename in filenames]),
+    go.Bar(name='nah', x=filenames, y=[results2[filename] for filename in filenames])
 ])
 # Change the bar mode
 fig.update_layout(barmode='group')

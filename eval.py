@@ -1,11 +1,11 @@
 import os, subprocess, time, argparse, re
-cmds = ['clang -S -emit-llvm -Xclang -disable-O0-optnone',
-        'opt -load build/skeleton/libSkeletonPass.* -skeleton -S ']
+import numpy as np
+import matplotlib.pyplot as plt
 
 filenames = ['Bubblesort', 'FloatMM', 'IntMM', 'Oscar', 'Perm', 'Puzzle', 'Queens', 'Quicksort', 'RealMM', 'Towers', 'Treesort']
 NUM_ITERATIONS = 5
 
-
+results = {}
 for filename in filenames:
     sum = 0
     for _ in range(NUM_ITERATIONS):
@@ -20,3 +20,36 @@ for filename in filenames:
         print(end-start)
         sum += end-start
     print("AVERAGE FOR ",filename, ' : ', sum/NUM_ITERATIONS)
+    results[filename] = sum/NUM_ITERATIONS
+
+# num_bars = len(filenames)
+# mean = [5 for f in filenames]
+# std = [1 for f in filenames]
+
+# x_pos = np.arange(num_bars)
+# CTEs = mean
+# error = std
+
+# # Build the plot
+# fig, ax = plt.subplots()
+# ax.bar(x_pos, CTEs, yerr=error, align='center', alpha=0.5, ecolor='black', capsize=10)
+# ax.set_ylabel('Execution Time1')
+# ax.set_xticks(x_pos)
+# ax.set_xticklabels(filenames)
+# ax.set_title('Execution Time2')
+# ax.yaxis.grid(True)
+
+# # Save the figure and show
+# plt.tight_layout()
+# plt.savefig('bar_plot_with_error_bars.png')
+# plt.show()
+
+import plotly.graph_objects as go
+
+fig = go.Figure(data=[
+    go.Bar(name='instrumented', x=filenames, y=[results[filename] for filename in filenames]),
+    go.Bar(name='nah', x=filenames, y=[results[filename] for filename in filenames])
+])
+# Change the bar mode
+fig.update_layout(barmode='group')
+fig.show()

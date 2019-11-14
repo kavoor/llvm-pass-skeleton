@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 filenames = ['Bubblesort', 'FloatMM', 'IntMM', 'Oscar', 'Perm', 'Puzzle', 'Queens', 'Quicksort', 'RealMM', 'Towers', 'Treesort']
-NUM_ITERATIONS = 5
+NUM_ITERATIONS = 1
 
 results = {}
 for filename in filenames:

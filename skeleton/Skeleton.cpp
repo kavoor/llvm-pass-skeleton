@@ -84,7 +84,7 @@ namespace {
     // Insert *after* `op`.
     // errs() << B << "\n";
     IRBuilder<> builder(B);
-    builder.SetInsertPoint(B, ++builder.GetInsertPoint());
+    builder.SetInsertPoint(B, B->getFirstInsertionPt());
     
     auto intType = IntegerType::get	(Ctx, 32);
     auto constantInt = ConstantInt::get	(intType, freshNum++);

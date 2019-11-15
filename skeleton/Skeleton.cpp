@@ -169,11 +169,10 @@ namespace {
       errs() << "SIZE " << mst.size()<<"\n\n\n";
       
       for(Edge edge : allEdges){
-        bool doContinue = false;
-        for(Edge mstEdge : mst) if (edgeEquals(edge, mstEdge)) doContinue = true;
-        if (doContinue) continue;
+        // bool doContinue = false;
+        // for(Edge mstEdge : mst) if (edgeEquals(edge, mstEdge)) doContinue = true;
+        // if (doContinue) continue;
 
-        // errs() << "INSTRUMENTED: " << *edge.SrcBB << "-->" << *edge.DestBB << '\n';
         bool instrumentSource = true;
         bool instrumentDest = true;
         for(BasicBlock * instrumentedB : instrumentedSrcs){
@@ -215,27 +214,7 @@ namespace {
           } 
         }
       }
-      
-      // for (auto &B : F) {
-      //       if (inMST(mst, &B)) continue;
-      //       // Insert *after* `op`.
-      //       errs() << B << "\n";
-      //       IRBuilder<> builder(&B);
-      //       builder.SetInsertPoint(&B, ++builder.GetInsertPoint());
-            
-      //       auto intType = IntegerType::get	(Ctx, 32);
-      //       auto constantInt = ConstantInt::get	(intType, freshNum);
-      //       freshNum++;
-      //       printf("FRESHNUM %i\n", freshNum);
 
-      //       // Insert a call to our function.
-      //       Value* args[] = {constantInt};
-      //       builder.CreateCall(logFunc, args);
-      // }
-      // for (Edge e : mst){
-      //   errs() << *e.SrcBB << " -> " << *e.DestBB << "\n" << "@@@@@@@@@@@@@@@@@@\n";
-      // }
-      // print the results right before returning from main
       if (F.getName() == "main") {
         Module* module = F.getParent();
         auto &context = F.getContext();

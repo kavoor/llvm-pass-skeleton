@@ -326,7 +326,7 @@ filenames = [
 
 ]
 filenames = list(set(filenames))
-NUM_ITERATIONS = 10
+NUM_ITERATIONS = 3
 
 print("COMPILING TO LLVM")
 for filename in tqdm(filenames):
@@ -339,23 +339,54 @@ print("RUNNING -O3")
 results0 = {}
 for filename in tqdm(filenames):
     sum = []
+    os.system('opt -O3 ' + filename + '.ll -o ' + filename + '0.ll &> /dev/null')
+    os.system('rm ' + filename + 'link.ll ; rm a.out &> /dev/null')
+    os.system('llvm-link rtlib.ll ' + filename + '0.ll ' + '-o ' + filename + 'link.ll')
+    worked = os.path.exists(filename+'link.ll')
+    if(not worked):
+        if filename in filenames:
+            filenames.remove(filename)
+        continue
+    os.system('llc '+filename+'link.ll; clang '+filename+'link.s -o '+filename+'a.out')
+    worked = os.path.exists(filename+'a.out')
+    if(not worked):
+        if filename in filenames:
+            filenames.remove(filename)
+        continue
+
+    os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S ' + filename + '0.ll -o ' + filename + '1.ll &> /dev/null')
+    os.system('rm '+filename+'link1.ll; rm '+filename+'a1.out &> /dev/null')
+    os.system('llvm-link rtlib.ll ' + filename + '1.ll ' + '-o '+filename+'link1.ll')
+    worked = os.path.exists(filename+'link1.ll')
+    if(not worked):
+        if filename in filenames:
+            filenames.remove(filename)
+        continue
+    os.system('llc '+filename+'link1.ll; clang '+filename+'link1.s -o '+filename+'a1.out')
+    worked = os.path.exists(filenam+'a1.out')
+    if(not worked):
+        if filename in filenames:
+            filenames.remove(filename)
+        continue
+    
+    os.system('opt -O3 ' + filename + '1.ll -o ' + filename + '2.ll > /dev/null')
+    os.system('rm '+filename+'link2.ll; rm '+filename+'a2.out &> /dev/null')
+    os.system('llvm-link rtlib.ll ' + filename + '2.ll ' + '-o '+filename+'link2.ll')
+    worked = os.path.exists(filename+'link2.out')
+    if(not worked):
+        if filename in filenames:
+            filenames.remove(filename) 
+        continue
+    os.system('llc '+filename+'link2.ll; clang '+filename+'link2.s -o '+filename+'a2.out')
+    worked = os.path.exists(filename+'a2.out')
+    if(not worked):
+        if filename in filenames:
+            filenames.remove(filename)
+        continue
+
     for _ in range(NUM_ITERATIONS):
-        os.system('opt -O3 ' + filename + '.ll -o ' + filename + '0.ll &> /dev/null')
-        os.system('rm link.ll ; rm a.out &> /dev/null')
-        os.system('llvm-link rtlib.ll ' + filename + '0.ll ' + '-o link.ll')
-        worked = os.path.exists('./'+filename+'.ll')
-        if(not worked):
-            if filename in filenames:
-                filenames.remove(filename)
-            continue
-        os.system('llc link.ll; clang link.s')
-        worked = os.path.exists('a.out')
-        if(not worked):
-            if filename in filenames:
-                filenames.remove(filename)
-            continue
         start = time.time()
-        os.system('./a.out > /dev/null')
+        os.system(filename+'./a.out > /dev/null')
         end = time.time()
         sum.append(end-start)
     results0[filename] = sum
@@ -365,22 +396,9 @@ results1 = {}
 for filename in tqdm(filenames):
     sum = []
     for _ in range(NUM_ITERATIONS):
-        os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S ' + filename + '0.ll -o ' + filename + '1.ll &> /dev/null')
-        os.system('rm link.ll; rm a.out &> /dev/null')
-        os.system('llvm-link rtlib.ll ' + filename + '1.ll ' + '-o link.ll')
-        worked = os.path.exists('./'+filename+'.ll')
-        if(not worked):
-            if filename in filenames:
-                filenames.remove(filename)
-            continue
-        os.system('llc link.ll; clang link.s')
-        worked = os.path.exists('a.out')
-        if(not worked):
-            if filename in filenames:
-                filenames.remove(filename)
-            continue
+        
         start = time.time()
-        os.system('./a.out > /dev/null')
+        os.system(filename+'./a1.out > /dev/null')
         end = time.time()
         sum.append(end-start)
     results1[filename] = sum
@@ -390,22 +408,8 @@ results2 = {}
 for filename in tqdm(filenames):
     sum = []
     for _ in range(NUM_ITERATIONS):
-        # os.system('opt -load build/skeleton/libSkeletonPass.* -skeleton -S  ' + filename + '.ll -o ' + filename + '1.ll &> /dev/null')
-        os.system('opt -O3 ' + filename + '1.ll -o ' + filename + '2.ll > /dev/null')
-        os.system('rm link.ll; rm a.out &> /dev/null')
-        os.system('llvm-link rtlib.ll ' + filename + '2.ll ' + '-o link.ll')
-        if(not worked):
-            if filename in filenames:
-                filenames.remove(filename) 
-            continue
-        os.system('llc link.ll; clang link.s')
-        worked = os.path.exists('a.out')
-        if(not worked):
-            if filename in filenames:
-                filenames.remove(filename)
-            continue
         start = time.time()
-        os.system('./a.out > /dev/null')
+        os.system(filename+'./a2.out > /dev/null')
         end = time.time()
         sum.append(end-start)
     results2[filename] = sum

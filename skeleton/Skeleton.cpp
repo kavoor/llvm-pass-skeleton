@@ -80,7 +80,38 @@ namespace {
   std::vector<BasicBlock*> instrumentedSrcs;
   std::vector<BasicBlock*> instrumentedDests;
 
-  void instrument(BasicBlock * B, LLVMContext& Ctx, FunctionCallee someFunc){
+  void instrumentdest(BasicBlock * B, LLVMContext& Ctx, FunctionCallee someFunc){
+    // Insert *after* `op`.
+    // errs() << B << "\n";
+    IRBuilder<> builder(B);
+    builder.SetInsertPoint(B, B->getFirstInsertionPt());
+    auto intType = IntegerType::get	(Ctx, 32);
+    auto name = std::stoi(B->getName());
+    errs() << name;
+    auto constantInt = ConstantInt::get	(intType, name);
+
+    // Insert a call to our function.
+    Value* args[] = {constantInt};
+    builder.CreateCall(someFunc, args);
+  }
+
+  void instrumentsrc(BasicBlock * B, LLVMContext& Ctx, FunctionCallee someFunc){
+    // Insert *after* `op`.
+    // errs() << B << "\n";
+    Instruction* inst = B->getTerminator();
+    IRBuilder<> builder(inst);
+    // builder.SetInsertPoint(B, B->getFirstInsertionPt());
+    auto intType = IntegerType::get	(Ctx, 32);
+    auto name = std::stoi(B->getName());
+    errs() << name;
+    auto constantInt = ConstantInt::get	(intType, name);
+
+    // Insert a call to our function.
+    Value* args[] = {constantInt};
+    builder.CreateCall(someFunc, args);
+  }
+
+  void instrumentDisrupt(BasicBlock * B, LLVMContext& Ctx, FunctionCallee someFunc){
     // Insert *after* `op`.
     // errs() << B << "\n";
     IRBuilder<> builder(B);
@@ -120,6 +151,8 @@ namespace {
       FunctionCallee logSrcFunc = F.getParent()->getOrInsertFunction("logsrc", logSrcFuncType);
       FunctionType *logDestFuncType = FunctionType::get(retType, paramTypes, false);
       FunctionCallee logDestFunc = F.getParent()->getOrInsertFunction("logdest", logDestFuncType);
+      FunctionType *logDisruptFuncType = FunctionType::get(retType, paramTypes, false);
+      FunctionCallee logDisruptFunc = F.getParent()->getOrInsertFunction("logdisrupt", logDisruptFuncType);
     
       std::vector<Edge> allEdges;
 
@@ -140,7 +173,7 @@ namespace {
         for(Edge mstEdge : mst) if (edgeEquals(edge, mstEdge)) doContinue = true;
         if (doContinue) continue;
 
-        errs() << "INSTRUMENTING: " << *edge.SrcBB << "-->" << *edge.DestBB << '\n';
+        // errs() << "INSTRUMENTED: " << *edge.SrcBB << "-->" << *edge.DestBB << '\n';
         bool instrumentSource = true;
         bool instrumentDest = true;
         for(BasicBlock * instrumentedB : instrumentedSrcs){
@@ -157,14 +190,30 @@ namespace {
         }
         if(instrumentSource) {
           // printf("Instrumenting %i as a source\n", freshNum);
-          instrument(edge.SrcBB, Ctx, logSrcFunc);
+          instrumentsrc(edge.SrcBB, Ctx, logSrcFunc);
           instrumentedSrcs.push_back(edge.SrcBB);
         }
         if(instrumentDest){
           // printf("Instrumenting %i as a dest\n", freshNum);
-          instrument(edge.DestBB, Ctx, logDestFunc);
+          instrumentdest(edge.DestBB, Ctx, logDestFunc);
           instrumentedDests.push_back(edge.DestBB);
         } 
+        errs() << "INSTRUMENTED: " << *edge.SrcBB << "-->" << *edge.DestBB << '\n';
+        int numsuccs = edge.SrcBB->getTerminator()->getNumSuccessors();
+        for(int succNum = 0; succNum<numsuccs; succNum++){
+          BasicBlock* succ = edge.SrcBB->getTerminator()->getSuccessor(succNum);
+          bool willGetInstument = false;
+          for(Edge edge2: allEdges){
+            bool doContinue2 = false;
+            for(Edge mstEdge2 : mst) if (edgeEquals(edge2, mstEdge2)) doContinue2 = true;
+            if(doContinue2) continue;
+            if(edge2.SrcBB == succ || edge2.DestBB == succ) willGetInstument = true;
+          }
+          if(!willGetInstument){
+            instrumentDisrupt(succ, Ctx, logDisruptFunc);
+            errs() << "DISRUPTED: " << succ << '\n';
+          } 
+        }
       }
       
       // for (auto &B : F) {

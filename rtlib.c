@@ -34,6 +34,10 @@ void logdest(int i) {
     previousSource = false;
 }
 
+void logdisrupt(int i){
+    previousSource = false;
+}
+
 // print all the results for each function
 void print_results() {
     printf("  Edge        Count\n");

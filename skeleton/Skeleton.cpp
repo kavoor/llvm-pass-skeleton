@@ -91,9 +91,22 @@ namespace {
     // printf("FRESHNUM %i\n", freshNum);
 
     // Insert a call to our function.
+    // args could be name of this bb
     Value* args[] = {constantInt};
     builder.CreateCall(someFunc, args);
   }
+
+  Function* print_results_func = NULL;
+  Function* get_print_results_func(LLVMContext &context, Module* module) {
+    if (print_results_func == NULL) {
+      std::vector<Type*> arg_types{};
+      auto return_type = Type::getVoidTy(context);
+      FunctionType *FT = FunctionType::get(return_type, arg_types, false);
+      print_results_func = Function::Create(FT, Function::ExternalLinkage, "print_results", module);
+    }
+    return print_results_func;
+  }
+
 
   struct SkeletonPass : public FunctionPass {
     static char ID;
@@ -147,11 +160,13 @@ namespace {
         if(instrumentSource) {
           printf("Instrumenting %i as a source\n", freshNum);
           instrument(edge.SrcBB, Ctx, logSrcFunc);
+          edge.SrcBB->setName(std::to_string(freshNum));
           instrumentedSrcs.push_back(edge.SrcBB);
         }
         if(instrumentDest){
           printf("Instrumenting %i as a dest\n", freshNum);
           instrument(edge.DestBB, Ctx, logDestFunc);
+          edge.DestBB->setName(std::to_string(freshNum));
           instrumentedDests.push_back(edge.DestBB);
         } 
       }
@@ -175,6 +190,20 @@ namespace {
       // for (Edge e : mst){
       //   errs() << *e.SrcBB << " -> " << *e.DestBB << "\n" << "@@@@@@@@@@@@@@@@@@\n";
       // }
+      // print the results right before returning from main
+      if (F.getName() == "main") {
+        Module* module = F.getParent();
+        auto &context = F.getContext();
+        for (auto &B : F) {
+          Instruction* t = B.getTerminator();
+          if (auto *op = dyn_cast<ReturnInst>(t)) {
+            IRBuilder<> builder(op);
+            auto print_results = get_print_results_func(context, module);
+            std::vector<Value*> args;
+            builder.CreateCall(print_results, args);
+          }
+        }
+      }
       return true;
     }
   };

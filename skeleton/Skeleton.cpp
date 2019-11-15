@@ -85,13 +85,12 @@ namespace {
     // errs() << B << "\n";
     IRBuilder<> builder(B);
     builder.SetInsertPoint(B, B->getFirstInsertionPt());
-    
     auto intType = IntegerType::get	(Ctx, 32);
-    auto constantInt = ConstantInt::get	(intType, freshNum++);
-    // printf("FRESHNUM %i\n", freshNum);
+    auto name = std::stoi(B->getName());
+    errs() << name;
+    auto constantInt = ConstantInt::get	(intType, name);
 
     // Insert a call to our function.
-    // args could be name of this bb
     Value* args[] = {constantInt};
     builder.CreateCall(someFunc, args);
   }
@@ -125,6 +124,7 @@ namespace {
       std::vector<Edge> allEdges;
 
       for (auto &B : F) {
+        B.setName(std::to_string(freshNum++));
         addEdges(&allEdges, &B);
       }
 
@@ -134,8 +134,6 @@ namespace {
       std::vector<Edge> mst;
       createMST(firstBB, allEdges, &mst);
       errs() << "SIZE " << mst.size()<<"\n\n\n";
-
-
       
       for(Edge edge : allEdges){
         bool doContinue = false;
@@ -158,15 +156,13 @@ namespace {
           }
         }
         if(instrumentSource) {
-          printf("Instrumenting %i as a source\n", freshNum);
+          // printf("Instrumenting %i as a source\n", freshNum);
           instrument(edge.SrcBB, Ctx, logSrcFunc);
-          edge.SrcBB->setName(std::to_string(freshNum));
           instrumentedSrcs.push_back(edge.SrcBB);
         }
         if(instrumentDest){
-          printf("Instrumenting %i as a dest\n", freshNum);
+          // printf("Instrumenting %i as a dest\n", freshNum);
           instrument(edge.DestBB, Ctx, logDestFunc);
-          edge.DestBB->setName(std::to_string(freshNum));
           instrumentedDests.push_back(edge.DestBB);
         } 
       }

@@ -126,17 +126,18 @@ namespace {
     builder.CreateCall(someFunc, args);
   }
 
-  Function* print_results_func = NULL;
-  Function* get_print_results_func(LLVMContext &context, Module* module) {
-    if (print_results_func == NULL) {
+  Function* get_table = NULL;
+  Function* get_table(LLVMContext &context, Module* module) {
+    if (get_table != NULL){
+      return get_table;
+    } else {
       std::vector<Type*> arg_types{};
       auto return_type = Type::getVoidTy(context);
       FunctionType *FT = FunctionType::get(return_type, arg_types, false);
       print_results_func = Function::Create(FT, Function::ExternalLinkage, "print_results", module);
-    }
-    return print_results_func;
-  }
 
+    }
+  }
 
   struct SkeletonPass : public FunctionPass {
     static char ID;
@@ -215,6 +216,9 @@ namespace {
         }
       }
 
+      // We determined how to call a function at the end of main after
+      // from an LLVM pass on GitHub.
+      std::vector<Value*> args;
       if (F.getName() == "main") {
         Module* module = F.getParent();
         auto &context = F.getContext();
@@ -222,9 +226,8 @@ namespace {
           Instruction* t = B.getTerminator();
           if (auto *op = dyn_cast<ReturnInst>(t)) {
             IRBuilder<> builder(op);
-            auto print_results = get_print_results_func(context, module);
-            std::vector<Value*> args;
-            builder.CreateCall(print_results, args);
+            FunctionCallee tabulate = get_table(context, module);
+            builder.CreateCall(tabulate, args);
           }
         }
       }

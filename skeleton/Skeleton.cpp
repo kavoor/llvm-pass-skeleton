@@ -60,7 +60,7 @@ namespace {
         return std::distance(insns.begin(),itr);
       }else{
         insns.push_back(name);
-        return insns.size();
+        return insns.size()-1;
       }
     }
 

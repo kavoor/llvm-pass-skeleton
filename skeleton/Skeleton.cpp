@@ -88,7 +88,7 @@ namespace {
       }
 
       std::vector<Type*> arg_types{};
-      if (F.getName() == "main") {
+      if (F.getName() == "run") {
         for (auto &B : F) {
           Instruction* t = B.getTerminator();
           if (auto *op = dyn_cast<ReturnInst>(t)) {

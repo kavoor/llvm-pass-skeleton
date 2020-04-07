@@ -18,19 +18,35 @@ namespace {
     std::vector<std::string> insns;
     std::vector<Value*> args;
 
-    Function* get_table(LLVMContext &context, Module* module) {
-      std::vector<Type*> arg_types{};
+    Function* store_int(LLVMContext &context, Module* module) {
+      auto i32t = Type::getInt32Ty(context);
+      std::vector<Type*> arg_types = {i32t};
       auto return_type = Type::getVoidTy(context);
       FunctionType *FT = FunctionType::get(return_type, arg_types, false);
-      Function* print_results_func = Function::Create(FT, Function::ExternalLinkage, "print_results", module);
-      return print_results_func;
+      Function* store_keys_func = Function::Create(FT, Function::ExternalLinkage, "store_int", module);
+      return store_keys_func;
     }
 
-    void print_keys(LLVMContext &context, Module* module, IRBuilder<> builder){
-      std::vector<Type*> arg_types = {Type::getInt32Ty(context)};
+    Function* init_insn_ptr(LLVMContext &context, Module* module) {
+      auto i32t = Type::getInt32Ty(context);
+      std::vector<Type*> arg_types = {PointerType::get(i32t, 0)};
       auto return_type = Type::getVoidTy(context);
       FunctionType *FT = FunctionType::get(return_type, arg_types, false);
-      Function* print_key_func = Function::Create(FT, Function::ExternalLinkage, "print_string", module);
+      Function* init_insn = Function::Create(FT, Function::ExternalLinkage, "init_insn_ptr", module);
+      return init_insn;
+    }
+
+    Function* copy_counts(LLVMContext &context, Module* module) {
+      auto i32t = Type::getInt32Ty(context);
+      std::vector<Type*> arg_types = {PointerType::get(i32t, 0)};
+      auto return_type = Type::getVoidTy(context);
+      FunctionType *FT = FunctionType::get(return_type, arg_types, false);
+      Function* copy_counts_func = Function::Create(FT, Function::ExternalLinkage, "copy_counts", module);
+      return copy_counts_func;
+    }
+
+    void store_keys(LLVMContext &context, Module* module, IRBuilder<> builder){
+      FunctionCallee store_keys_func = store_int(context,module);
       auto intType = IntegerType::get(context, 32);
 
       for(auto it = insns.begin(); it != insns.end(); it++){
@@ -40,23 +56,22 @@ namespace {
           int int_char = (int)str[i];
           auto c = ConstantInt::get(intType, int_char);
           std::vector<Value*> args = {c};
-          builder.CreateCall(print_key_func, args);
+          builder.CreateCall(store_keys_func, args);
         }
         int int_char = (int)',';
         auto c = ConstantInt::get(intType, int_char);
         std::vector<Value*> args = {c};
-        builder.CreateCall(print_key_func, args);
+        builder.CreateCall(store_keys_func, args);
       }
       int int_char = (int)'\n';
       auto c = ConstantInt::get(intType, int_char);
       std::vector<Value*> args = {c};
-      builder.CreateCall(print_key_func, args);
+      builder.CreateCall(store_keys_func, args);
     }
 
     int get_index(const char* name){
-      // const char* name= i.getOpcodeName();
       std::vector<std::string>::iterator itr = std::find(insns.begin(), insns.end(), name);
-      if (itr != insns.cend()) {
+      if (itr != insns.end()) {
         return std::distance(insns.begin(),itr);
       }else{
         insns.push_back(name);
@@ -65,19 +80,28 @@ namespace {
     }
 
     virtual bool runOnFunction(Function &F) {
-      unsigned int addCount = 0;
       LLVMContext &Ctx = F.getContext();
       std::vector<Type*> int_arg_types = {Type::getInt32Ty(Ctx)};
       Type *retType = Type::getVoidTy(Ctx);
       Module* module = F.getParent();
+      
+      std::vector<Value*> input_args;
+      for( Function::arg_iterator arg = F.arg_begin(); arg != F.arg_end(); arg++){
+        errs() << arg->getName();
+        errs() << *(arg->getType()) << ',';
+        input_args.push_back(arg);
+      }
+
+      auto I = input_args[1];
+      auto C = input_args[2];
+
 
       for (BasicBlock& bb : F) {
         for (Instruction& i : bb) {
           if (i.getOpcode()){
             FunctionType *logAddFuncType = FunctionType::get(retType, int_arg_types, false);
-            // errs() << i.getOpcodeName();
             int index = get_index(i.getOpcodeName());
-            auto intType = IntegerType::get	(Ctx, 32);
+            auto intType = IntegerType::get    (Ctx, 32);
             auto constant_index = ConstantInt::get	(intType, index);
             std::vector<Value*> args = {constant_index};
             FunctionCallee logFunc = module->getOrInsertFunction("log_insn", logAddFuncType);
@@ -88,23 +112,27 @@ namespace {
       }
 
       std::vector<Type*> arg_types{};
-      if (F.getName() == "main") {
+      if (F.getName() == "run") {
         for (auto &B : F) {
           Instruction* t = B.getTerminator();
           if (auto *op = dyn_cast<ReturnInst>(t)) {
             IRBuilder<> builder(op);
-            print_keys(Ctx,module,builder);
-            FunctionCallee tabulate = get_table(Ctx, module);
-            builder.CreateCall(tabulate, args);
+            std::vector<Value*> ptr_args = {I};
+            FunctionCallee init_insn = init_insn_ptr(Ctx, module);
+            builder.CreateCall(init_insn, ptr_args);
+
+            store_keys(Ctx, module, builder);
+
+            std::vector<Value*> copy_args = {C};
+            FunctionCallee copy = copy_counts(Ctx, module);
+            builder.CreateCall(copy, copy_args);
           }
         }
       }
-      
-      // for(auto it = insns.begin(); it != insns.end(); it++){
-      //   errs() << *it << ',';
-      // }
+
+      // Copy instructions over.
       return true;
-    }
+    };
   };
 }
 

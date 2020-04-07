@@ -1,27 +1,28 @@
-#include <stdio.h>
-#include <string.h> 
-#include <limits.h>
-#include <stdbool.h>
-#include <stdatomic.h>
+#include <stdlib.h>
 
-// Instruction count array
-// add = 0
-int dict[__INT16_MAX__] = {};
+int dict[100] = {};
+int* insn_ptr;
+int i = 0;
 
 void log_insn(int i){
     dict[i] = dict[i] + 1;
 }
 
-// print all the results for each function
-void print_results() {
-    for(int j=0; j<__INT16_MAX__; j++){
-        if (dict[j] != 0){
-            printf("%d,",dict[j]);
-        }
-    } 
-    printf("\n");
+void init_insn_ptr(int* C){
+    insn_ptr = C;
 }
-void print_string(int i){
-    char c = i;
-    printf("%c", c);
+
+void store_int(int a){
+    insn_ptr[i] = a;
+    i = i + 1;
+}
+
+void copy_counts(int* C){
+    memcpy(C, dict, 100);
+}
+
+int main(int argc, char **argv) {
+    int r = run(atoi(argv[1]));
+    printf("%d\n", r);
+    return 0;
 }
